@@ -1,4 +1,17 @@
 from django.db import models
+from django.contrib.auth import get_user_model
+
+
+User = get_user_model()
+
+
+class Author(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    money = models.IntegerField()
+
+
+class Admin(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
 
 
 class Teaser(models.Model):
@@ -10,5 +23,5 @@ class Teaser(models.Model):
         ('failure', 'Отказ'),
 
     )
-    author = models.CharField(max_length=64)
+    author = models.ForeignKey(Author, related_name='author', on_delete=models.PROTECT)
     status = models.CharField(max_length=50, choices=status_list, blank=True)
