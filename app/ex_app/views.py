@@ -6,7 +6,6 @@ from environs import Env
 from .models import *
 from .serializers import *
 
-
 env = Env()
 env.read_env()
 
@@ -32,14 +31,13 @@ class TeaserView(APIView):
         return Response(teasers)
 
     def post(self, request):
-        print(request.user)
-
         serializer_obj = TeaserSerializer(data=request.data)
+        #print(request.data)
         if serializer_obj.is_valid():
-            author = Author.objects.get(id=serializer_obj.data.get('author'))
-            new_teaser = Teaser.objects.create(title=serializer_obj.data.get('title'),
-                                               description=serializer_obj.data.get('description'),
-                                               category=serializer_obj.data.get('category'), author=author)
+            Teaser.objects.create(title=serializer_obj.data.get('title'),
+                                  description=serializer_obj.data.get('description'),
+                                  category=serializer_obj.data.get('category'),
+                                  author=Author.objects.get(id=serializer_obj.data.get('author')))
             return Response(0)
         return Response(-1)
 
@@ -53,16 +51,21 @@ class WorkTeasersView(APIView):
         return Response(teasers)
 
     def post(self, request):
-        serializer_obj = WorkTeasersSerializer(data=request.data)
+        data_list = request.data
+        if not isinstance(request.data, list):
+            data_list = [request.data]
+        serializer_obj = WorkTeasersSerializer(data=data_list, many=True)
         if serializer_obj.is_valid():
-            print(request.data)
-            teaser = Teaser.objects.all().filter(id=serializer_obj.data.get('id'))
-            if teaser.first().status == '':
-                status = serializer_obj.data.get('status')
-                teaser.update(status=status)
-                if status == 'paid':
-                    author = Author.objects.all().filter(id=teaser.first().author.pk)
-                    new_value = author.first().money + env.int("MONEY_UPDATE")
-                    author.update(money=new_value)
-                return Response(0)
+            for req_data in serializer_obj.data:
+                teaser = Teaser.objects.get(id=req_data.get('id'))
+                if teaser.status == '':
+                    status = req_data.get('status')
+                    teaser.status = status
+                    if status == 'paid':
+                        author = Author.objects.get(id=teaser.author.pk)
+                        payment = author.money + env.int("PAYMENT")
+                        author.money = payment
+                        author.save()
+                    teaser.save()
+            return Response(0)
         return Response(-1)

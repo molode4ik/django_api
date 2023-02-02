@@ -7,7 +7,7 @@ class TeaserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Teaser
-        fields = '__all__'
+        fields = ('title', 'description', 'category', 'author_id', 'author')
 
 
 class WorkTeasersSerializer(serializers.ModelSerializer):
