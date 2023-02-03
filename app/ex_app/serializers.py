@@ -3,11 +3,11 @@ from .models import Teaser, Author
 
 
 class TeaserSerializer(serializers.ModelSerializer):
-    author_id = serializers.RelatedField(source='Author', read_only=True)
+    # author_id = serializers.RelatedField(source='Author', read_only=True)
 
     class Meta:
         model = Teaser
-        fields = ('title', 'description', 'category', 'author_id', 'author')
+        fields = ('title', 'description', 'category')
 
 
 class WorkTeasersSerializer(serializers.ModelSerializer):

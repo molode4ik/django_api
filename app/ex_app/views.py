@@ -1,13 +1,9 @@
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAdminUser, IsAuthenticated, BasePermission
-from django.contrib.auth.decorators import permission_required
-from environs import Env
+from rest_framework.permissions import BasePermission
 from .models import *
 from .serializers import *
-
-env = Env()
-env.read_env()
+from .scripts import request_data_processing
 
 
 class ViewOnly(BasePermission):
@@ -18,7 +14,7 @@ class ViewOnly(BasePermission):
 
 class ChangeAndView(BasePermission):
     def has_permission(self, request, view):
-        if request.user.has_perm('ex_app.view_teaser') and request.user.has_perm('ex_app.change_teaser'):
+        if request.user.has_perm('ex_app.change_teaser'):
             return True
 
 
@@ -32,12 +28,12 @@ class TeaserView(APIView):
 
     def post(self, request):
         serializer_obj = TeaserSerializer(data=request.data)
-        #print(request.data)
-        if serializer_obj.is_valid():
+        author = Author.objects.all().filter(user_id=request.user.id)
+        if serializer_obj.is_valid() and author:
             Teaser.objects.create(title=serializer_obj.data.get('title'),
                                   description=serializer_obj.data.get('description'),
                                   category=serializer_obj.data.get('category'),
-                                  author=Author.objects.get(id=serializer_obj.data.get('author')))
+                                  author=author[0])
             return Response(0)
         return Response(-1)
 
@@ -56,16 +52,6 @@ class WorkTeasersView(APIView):
             data_list = [request.data]
         serializer_obj = WorkTeasersSerializer(data=data_list, many=True)
         if serializer_obj.is_valid():
-            for req_data in serializer_obj.data:
-                teaser = Teaser.objects.get(id=req_data.get('id'))
-                if teaser.status == '':
-                    status = req_data.get('status')
-                    teaser.status = status
-                    if status == 'paid':
-                        author = Author.objects.get(id=teaser.author.pk)
-                        payment = author.money + env.int("PAYMENT")
-                        author.money = payment
-                        author.save()
-                    teaser.save()
-            return Response(0)
+            response = request_data_processing(serializer_obj)
+            return Response(response)
         return Response(-1)
